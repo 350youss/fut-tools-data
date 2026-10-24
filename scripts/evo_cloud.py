@@ -21,6 +21,7 @@ import evo_scan  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "data" / "cache" / "auto_state.json"
 RESULTS = ROOT / "data" / "cache" / "futgg_gen.json"
+RUN = ROOT / "data" / "cache" / "run_state.json"  # evolutions seen by the check job, used by the whole run
 LOG = ROOT / "data" / "cache" / "evo_auto.log"
 
 
@@ -45,16 +46,25 @@ def check(force):
     sig = affected.signature(evos)
     state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {}
     stale_cards = time.time() - state.get("cards_at", 0) > 7 * 86400
-    if sig == state.get("sig") and not force:
+    # weekly full recompute (FUT.GG re-tunes its GG Rating now and then): started on
+    # Sunday night, carried on by the next runs until every pair is done
+    full = state.get("full", "")
+    if not full and time.time() - state.get("full_at", time.time()) > 7 * 86400 and datetime.now().weekday() == 6:
+        full = datetime.now().strftime("%Y%m%d")
+        state["full"] = full
+        STATE.write_text(json.dumps(state), encoding="utf-8")
+    if sig == state.get("sig") and not force and not full:
         log(f"évolutions inchangées ({len(evos)} actives), rien à faire")
         return output(run="false")
-    log(f"évolutions à calculer ({len(evos)} actives, {sig})")
-    output(run="true", sig=sig, cards="true" if stale_cards else "false")
+    log(f"évolutions à calculer ({len(evos)} actives, {sig}){' + recalcul hebdomadaire ' + full if full else ''}")
+    RUN.write_text(json.dumps({"sig": sig, "ids": sorted(e["id"] for e in evos), "full": full}), encoding="utf-8")
+    output(run="true", sig=sig, full=full, cards="true" if stale_cards else "false")
 
 
 def merge(folder):
-    evos = evo_scan.active_evolutions()
-    sig = affected.signature(evos)
+    # the run's own evolution set: FUT.GG may have changed it since (next run handles that)
+    run = json.loads(RUN.read_text(encoding="utf-8"))
+    sig, ids = run["sig"], run["ids"]
     results = json.loads(RESULTS.read_text(encoding="utf-8")) if RESULTS.exists() else {}
     n = 0
     for f in sorted(Path(folder).rglob("futgg_gen.json")):
@@ -69,7 +79,9 @@ def merge(folder):
     RESULTS.write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")
     cards = ROOT / "data" / "cache" / "scan_cards.json"
     all_items = [it for ea, c in json.loads(cards.read_text(encoding="utf-8")).items() for it in affected.items_of(ea, c["state"])]
-    missing = [it for it in all_items if results.get(it, {}).get("sig") != sig or "error" in results.get(it, {})]
+    full = run.get("full", "")
+    missing = [it for it in all_items if results.get(it, {}).get("sig") != sig or "error" in results.get(it, {})
+               or (full and results.get(it, {}).get("full") != full)]
     log(f"{n} résultats exacts ajoutés, {len(all_items) - len(missing)} / {len(all_items)} couples carte-poste exacts pour les évolutions actuelles")
     state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {}
     if missing:  # some shard did not finish: the next run takes the rest
@@ -77,9 +89,12 @@ def merge(folder):
         state.pop("sig", None)
         STATE.write_text(json.dumps(state), encoding="utf-8")
         return
+    if full:  # weekly recompute finished
+        state.pop("full", None)
+        state["full_at"] = time.time()
     if os.environ.get("FT_CARDS_REFRESHED") == "true":
         state["cards_at"] = time.time()
-    state.update(sig=sig, ids=sorted(e["id"] for e in evos), at=time.time(), active=len(evos),
+    state.update(sig=sig, ids=ids, at=time.time(), active=len(ids),
                  cards=len(json.loads(cards.read_text(encoding="utf-8"))))
     STATE.write_text(json.dumps(state), encoding="utf-8")
 

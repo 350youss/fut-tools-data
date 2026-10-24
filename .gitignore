@@ -1,2 +1,3 @@
 __pycache__/
 data/cache/gen_queue_auto.json
+data/cache/run_state.json

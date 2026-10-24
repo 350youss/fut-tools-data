@@ -58,6 +58,7 @@ def main(count=400):
         if sc:
             base_gg[cur] = sc / 100
 
+    ps_name = {p["eaId"]: p["name"] for p in (evo_scan.get(f"https://r2.fut.gg/27/play-styles.v{m['_version']}.{m['play-styles']}.json") or [])}
     results = json.loads((ROOT / "data" / "cache" / "futgg_gen.json").read_text(encoding="utf-8"))
     entries = list(results.items()) + [(k, v) for k, v in club_rows() if k not in results]
     names, name_idx = [], {}
@@ -91,6 +92,9 @@ def main(count=400):
         per_card[ea][pos] = {
             "gg": t["gg"], "ovr": st["overall"], "exact_pos": bool(pos_key),
             "faces": [E.face(st, f) for f in FACES] if cards[ea]["state"]["position"] != 0 else None,
+            # in-game stats total as FUT.GG counts it: every attribute except the keeper ones (keepers: theirs)
+            "ps": sorted(st["playstyles"]), "psp": sorted(st["playstylesPlus"]),
+            "igs": sum(v for k, v in st.items() if k.startswith("attribute") and isinstance(v, (int, float)) and (k.startswith("attributeGk") == (cards[ea]["state"]["position"] == 0))),
             "coins": t["coins"], "points": t["points"], "exp": t["expires"],
             "steps": [[s["evo"], s["letters"], s["gg"], 1 if evos.get(s["evo"], {}).get("repeatabilityCount") == 1 else 0] for s in t["steps"]],
         }
@@ -101,7 +105,7 @@ def main(count=400):
         return {
             "id": int(ea), "name": c["name"], "base": c["state"]["overall"], "pos0": POS_NAME.get(c["state"]["position"], "?"),
             "url": c["url"], "sbc": c["sbc"], "obj": c["objective"], "nation": n, "league": lg, "club": cl,
-            "gg": p["gg"], "pos": pos, "ovr": p["ovr"], "gg0": base_gg.get(int(ea)), "faces": p["faces"],
+            "gg": p["gg"], "pos": pos, "ovr": p["ovr"], "gg0": base_gg.get(int(ea)), "faces": p["faces"], "igs": p["igs"], "ps": [ps_name.get(i, i) for i in p["ps"]], "psp": [ps_name.get(i, i) for i in p["psp"]],
             "coins": p["coins"], "points": p["points"], "exp": p["exp"],
             "steps": [{"n": s[0], "o": s[1], "gg": s[2], "u": s[3]} for s in p["steps"]],
             "alt": [{"gg": q["gg"], "pos": ps, "steps": [s[0] + (" " + s[1] if s[1] else "") for s in q["steps"]]}
@@ -112,7 +116,13 @@ def main(count=400):
     rows = [card_row(ea, max(per_card[ea], key=lambda ps: per_card[ea][ps]["gg"])) for _, ea in best]
     gems = sorted((r for r in rows if r["base"] <= 74 and r["gg0"]), key=lambda r: -(r["gg"] - r["gg0"]))[:60]
     now = datetime.now().isoformat(timespec="minutes")
-    OUT.write_text(json.dumps({"at": now, "cards": len(per_card), "rows": rows[:count], "gems": gems}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    # coverage: card-position pairs computed exactly for the current evolutions
+    import affected
+    sig = affected.signature(evo_scan.active_evolutions())
+    items = [it for ea, c in cards.items() for it in affected.items_of(ea, c["state"])]
+    done = sum(1 for it in items if results.get(it, {}).get("sig") == sig and "error" not in results[it])
+    cover = {"done": done, "total": len(items)}
+    OUT.write_text(json.dumps({"at": now, "cards": len(per_card), "cover": cover, "rows": rows[:count], "gems": gems}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
     # compact list for the filters: one line per card, one entry per position
     nat, lea, clu = {}, {}, {}
@@ -125,9 +135,9 @@ def main(count=400):
         c = cards[ea]
         n, lg, cl = (meta.get(ea) or [None, None, None])
         lines.append([int(ea), c["name"], c["state"]["overall"], idx(nat, n), idx(lea, lg), idx(clu, cl), base_gg.get(int(ea)),
-                      [[ps, q["gg"], q["ovr"], q["faces"], q["coins"], q["points"], q["exp"], [[evo_i(s[0]), s[1], s[2], s[3]] for s in q["steps"]]]
+                      [[ps, q["gg"], q["ovr"], q["faces"], q["coins"], q["points"], q["exp"], [[evo_i(s[0]), s[1], s[2], s[3]] for s in q["steps"]], q["igs"], q["ps"], q["psp"]]
                        for ps, q in sorted(byp.items(), key=lambda x: -x[1]["gg"])], c["url"]])
-    OUT_ALL.write_text(json.dumps({"at": now, "evos": names, "nations": list(nat), "leagues": list(lea), "clubs": list(clu), "cards": lines},
+    OUT_ALL.write_text(json.dumps({"at": now, "cover": cover, "playstyles": {str(k): v for k, v in ps_name.items()}, "evos": names, "nations": list(nat), "leagues": list(lea), "clubs": list(clu), "cards": lines},
                                   ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{len(per_card)} cartes, {sum(len(v) for v in per_card.values())} couples carte-poste ; meilleure : {rows[0]['name']} {rows[0]['gg']} {rows[0]['pos']}"
           f" ; evo_all.json {OUT_ALL.stat().st_size // 1024} Ko")

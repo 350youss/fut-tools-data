@@ -41,8 +41,9 @@ def signature(evos):
 _W = {}
 
 
-def _init(new_ids):
-    _W["evos"] = evo_scan.active_evolutions()
+def _init(new_ids, run_ids):
+    raw = {e["id"]: e for e in evo_scan.all_evolutions_raw()}
+    _W["evos"] = [raw[i] for i in run_ids if i in raw] or evo_scan.active_evolutions()
     _W["new"] = [e for e in _W["evos"] if e["id"] in new_ids]
     _W["gg"] = gg_pos_model.Model2()
 
@@ -54,12 +55,22 @@ def _touched(start):
         if not hit and any(E.eligible(st, e)[0] for e in _W["new"]):
             hit.append(1)
 
-    evo_scan.search_card(start, _W["evos"], _W["gg"], visit)
+    # prudence: the new evolution's other requirements (position, pace, PlayStyles...) met
+    # at some overall the card can reach, even on a branch the search did not keep
+    for ovr in (start["overall"], 60, 65, 70, 75, 80, 83, 84, 85):
+        if not hit and any(E.eligible({**start, "overall": ovr}, e)[0] for e in _W["new"]):
+            hit.append(1)
+    if not hit:
+        evo_scan.search_card(start, _W["evos"], _W["gg"], visit)
     return bool(hit)
 
 
 def main(shard, shards, out):
     evos = evo_scan.active_evolutions()
+    run = ROOT / "data" / "cache" / "run_state.json"
+    if run.exists():  # same evolution set as the check job, even if FUT.GG changed it meanwhile
+        ids = set(json.loads(run.read_text(encoding="utf-8"))["ids"])
+        evos = [e for e in evo_scan.all_evolutions_raw() if e["id"] in ids] or evos
     sig, names = signature(evos), {e["name"] for e in evos}
     state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {}
     prev_ids = set(state.get("ids") or [])
@@ -67,12 +78,16 @@ def main(shard, shards, out):
     results = json.loads(RESULTS.read_text(encoding="utf-8")) if RESULTS.exists() else {}
     cards = json.loads(evo_scan.CARDS.read_text(encoding="utf-8"))
     ids = sorted(cards, key=int)[shard::shards]
+    full = os.environ.get("FT_FULL", "")  # id of the weekly full recompute, if one is running
     queue, check = [], []
     why = {"jamais calculée": 0, "évolution expirée": 0, "nouvelle évolution": 0}
     for ea in ids:
         todo = []
         for it in items_of(ea, cards[ea]["state"]):
             r = results.get(it)
+            if full and not (r and r.get("full") == full):
+                todo.append(it); why["recalcul hebdomadaire"] = why.get("recalcul hebdomadaire", 0) + 1
+                continue
             if r and r.get("sig") == sig and "error" not in r:
                 continue  # already exact for these evolutions
             if not r or "error" in r or (not r.get("top") and not r.get("none")):
@@ -84,7 +99,7 @@ def main(shard, shards, out):
         queue += todo
     unaffected = []  # stored result still exact: stamped with the new signature at merge
     if check:
-        with ProcessPoolExecutor(os.cpu_count() or 2, initializer=_init, initargs=(new_ids,)) as pool:
+        with ProcessPoolExecutor(os.cpu_count() or 2, initializer=_init, initargs=(new_ids, [e["id"] for e in evos])) as pool:
             uniq = list(dict.fromkeys(it.split("@")[0] for it in check))  # the tree does not depend on the position
             touched = dict(zip(uniq, pool.map(_touched, [cards[ea]["state"] for ea in uniq], chunksize=8)))
             for it in check:

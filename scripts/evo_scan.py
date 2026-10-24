@@ -48,6 +48,13 @@ def active_evolutions():
     return keep
 
 
+def all_evolutions_raw():
+    """Every evolution FUT.GG knows (expired ones included), same filter as active_evolutions."""
+    m = get("https://r2.fut.gg/27/manifest.json")
+    allv = get(f"https://r2.fut.gg/27/all-evolutions.v{m['_version']}.{m['all-evolutions']}.json") or []
+    return [e for e in allv if not e.get("isCosmeticEvolution") and not e.get("doesNotUpgradePlayer") and e.get("levels")]
+
+
 def cards():
     # 1. base players with a card rated <= 83 (collapsed: one row per base player).
     # The listing stops at 10 000 rows, so it is read one rating at a time.

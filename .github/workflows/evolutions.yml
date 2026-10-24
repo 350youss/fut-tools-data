@@ -33,6 +33,7 @@ jobs:
     outputs:
       run: ${{ steps.c.outputs.run }}
       sig: ${{ steps.c.outputs.sig }}
+      full: ${{ steps.c.outputs.full }}
       cards: ${{ steps.c.outputs.cards }}
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +55,7 @@ jobs:
           path: |
             data/cache/scan_cards.json
             data/cache/card_meta.json
+            data/cache/run_state.json
           retention-days: 2
 
   shard:
@@ -77,10 +79,13 @@ jobs:
           name: cards
           path: data/cache
       - name: cartes concernées
+        env:
+          FT_FULL: ${{ needs.check.outputs.full }}
         run: python -u scripts/affected.py ${{ matrix.shard }} $SHARDS queue.json
       - name: calcul exact (générateur FUT.GG)
         env:
           FT_SIG: ${{ needs.check.outputs.sig }}
+          FT_FULL: ${{ needs.check.outputs.full }}
           FT_DEADLINE: "17400"
         run: python -u scripts/gen_headless.py queue.json 4
       - uses: actions/upload-artifact@v4
@@ -121,4 +126,4 @@ jobs:
           git config user.name "fut-tools bot"
           git config user.email "actions@users.noreply.github.com"
           git add -A data
-          git diff --cached --quiet || (git commit -m "Évolutions : mise à jour $(date -u +%F)" && git push)
+          git diff --cached --quiet || (git commit -m "Évolutions : mise à jour $(date -u +%F)" && git pull --rebase -X theirs && git push)

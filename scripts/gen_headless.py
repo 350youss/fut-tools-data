@@ -164,6 +164,8 @@ async def worker(k, browser, queue, results, lock):
         except Exception as e:  # noqa: BLE001
             r = {"error": str(e)[:200]}
         r["sig"] = SIG
+        if os.environ.get("FT_FULL"):
+            r["full"] = os.environ["FT_FULL"]
         async with lock:
             results[str(ea)] = r
             OUT.write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")
