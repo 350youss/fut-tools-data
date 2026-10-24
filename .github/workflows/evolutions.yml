@@ -3,6 +3,8 @@ name: evolutions
 # FC 27 evolutions come out at 19:00 (Paris). Checks at 19:15 and 20:30 Paris
 # time in both summer (UTC+2) and winter (UTC+1), plus one in the morning.
 # Nothing is recomputed when the set of active evolutions has not changed.
+# When it has: 20 machines share the cards, each recomputes with FUT.GG's
+# generator the cards the change can affect; the last job merges and publishes.
 on:
   schedule:
     - cron: "15 17 * * *"
@@ -12,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "auto (si changement), force (recalcul complet) ou probe (test d'accès FUT.GG)"
+        description: "auto (si changement) ou force (vérifie toutes les cartes, à chaque poste)"
         default: auto
 
 concurrency:
@@ -22,10 +24,47 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  SHARDS: 20
+
 jobs:
-  run:
+  check:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    outputs:
+      run: ${{ steps.c.outputs.run }}
+      sig: ${{ steps.c.outputs.sig }}
+      cards: ${{ steps.c.outputs.cards }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests numpy
+      - id: c
+        run: python scripts/evo_cloud.py check ${{ github.event.inputs.mode == 'force' && '--force' || '' }}
+      - name: liste des cartes (une fois par semaine)
+        if: steps.c.outputs.run == 'true' && steps.c.outputs.cards == 'true'
+        run: |
+          python -u scripts/evo_scan.py cards
+          python -u scripts/evo_scan.py meta
+      - uses: actions/upload-artifact@v4
+        if: steps.c.outputs.run == 'true'
+        with:
+          name: cards
+          path: |
+            data/cache/scan_cards.json
+            data/cache/card_meta.json
+          retention-days: 2
+
+  shard:
+    needs: check
+    if: needs.check.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,24 +72,51 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - run: python -m playwright install --with-deps chromium
-      - name: test d'accès FUT.GG
-        if: github.event.inputs.mode == 'probe'
-        run: |
-          python - <<'PY'
-          import sys; sys.path.insert(0, "scripts")
-          import evo_scan
-          print(len(evo_scan.active_evolutions()), "évolutions actives lues")
-          PY
-          echo "[84124696, 237386]" > probe.json
-          FT_SIG=probe python scripts/gen_headless.py probe.json 2
-          git checkout -- data/cache/futgg_gen.json
-      - name: mise à jour
-        if: github.event.inputs.mode != 'probe'
+      - uses: actions/download-artifact@v4
+        with:
+          name: cards
+          path: data/cache
+      - name: cartes concernées
+        run: python -u scripts/affected.py ${{ matrix.shard }} $SHARDS queue.json
+      - name: calcul exact (générateur FUT.GG)
         env:
-          FT_WORKERS: "4"
-        run: python -u scripts/evo_auto.py ${{ github.event.inputs.mode == 'force' && '--force' || '' }}
+          FT_SIG: ${{ needs.check.outputs.sig }}
+          FT_DEADLINE: "17400"
+        run: python -u scripts/gen_headless.py queue.json 4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shard-${{ matrix.shard }}
+          path: |
+            data/cache/futgg_gen.json
+            queue.ok.json
+          retention-days: 2
+
+  merge:
+    needs: [check, shard]
+    if: always() && needs.check.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests numpy
+      - uses: actions/download-artifact@v4
+        with:
+          name: cards
+          path: data/cache
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          path: shards
+      - name: fusion et classement
+        env:
+          FT_CARDS_REFRESHED: ${{ needs.check.outputs.cards }}
+        run: |
+          python scripts/evo_cloud.py merge shards
+          python scripts/export_evo_best.py 400
       - name: enregistrement des données
-        if: github.event.inputs.mode != 'probe'
         run: |
           git config user.name "fut-tools bot"
           git config user.email "actions@users.noreply.github.com"

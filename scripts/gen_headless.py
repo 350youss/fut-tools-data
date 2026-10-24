@@ -15,6 +15,7 @@ stopped and resumed.
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -22,11 +23,16 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "data" / "cache" / "futgg_gen.json"
+OUT = Path(os.environ.get("FT_OUT") or ROOT / "data" / "cache" / "futgg_gen.json")
 LAB = "https://www.fut.gg/evo-lab/"
 KEY = "FUTGG_EVO_LAB_APP_27"
 TIMEOUT_S = 300
 SIG = os.environ.get("FT_SIG")
+# stop taking new cards after FT_DEADLINE seconds (GitHub jobs are capped at 6 h)
+# Queue items are card ids (best position) or "id@POS" (results ranked by the best role
+# at that position, e.g. "276976@ST"); FT_POS applies one position to plain ids.
+POS = os.environ.get("FT_POS")
+DEADLINE = time.time() + float(os.environ.get("FT_DEADLINE", "1e9"))
 
 SELECT = """(eaId) => {
   const s = JSON.parse(localStorage[%r]);
@@ -93,9 +99,28 @@ async def ev(page, js, arg=None, timeout=60):
     return await asyncio.wait_for(page.evaluate(js, arg), timeout)
 
 
-async def one(page, ea):
+async def one(page, item):
+    ea, _, pos = str(item).partition("@")
+    ea, pos = int(ea), pos or POS
     await ev(page, SELECT, ea)
     await page.goto(f"{LAB}?ft={ea}-{int(time.time())}", wait_until="domcontentloaded")
+    if pos:
+        # the menu keeps its last choice: its label is "GG Rating: ..." or the chosen role
+        trig = "() => { const b = [...document.querySelectorAll('button[data-slot=dropdown-menu-trigger]')].find((b) => /GG Rating|Role|position/i.test(b.innerText)); return b ? b.innerText : null; }"
+        label = None
+        for _ in range(200):
+            await asyncio.sleep(0.3)
+            label = await ev(page, trig)
+            if label:
+                break
+        if label and f"Best {pos} Role" not in label:
+            await ev(page, "() => document.getElementById('uniccmp')?.remove()")  # cookie banner over the page (no consent given)
+            await page.locator("button[data-slot=dropdown-menu-trigger]", has_text=re.compile("GG Rating|Role|position", re.I)).first.click(timeout=10000, force=True)
+            choice = page.get_by_role("menuitem", name=f"Best {pos} Role", exact=True)
+            if not await choice.count():
+                await page.keyboard.press("Escape")
+                return {"found": 0, "complete": True, "seconds": 0, "top": [], "none": True, "pos": pos}
+            await choice.first.click(timeout=10000, force=True)
     for _ in range(100):
         await asyncio.sleep(0.3)
         if await ev(page, CLICK, ea):
@@ -119,8 +144,8 @@ async def one(page, ea):
         if not started and el > clicks * 4 and clicks < 6:
             await ev(page, CLICK, ea)
             clicks += 1
-        if el > 45:  # nothing ever started: retried on the next run
-            raise RuntimeError("le générateur n'a rien renvoyé")
+        if el > 45:  # six clicks and still nothing: no evolution path for this card
+            return {"found": 0, "complete": True, "seconds": round(el), "top": [], "none": True}
     return {"found": found, "complete": False, "seconds": TIMEOUT_S, "top": await ev(page, READ, 4)}
 
 
@@ -132,7 +157,7 @@ async def worker(k, browser, queue, results, lock):
         await asyncio.sleep(0.5)
         if await ev(page, f"() => !!localStorage[{KEY!r}]"):
             break
-    while queue:
+    while queue and time.time() < DEADLINE:
         ea = queue.pop(0)
         try:
             r = await one(page, ea)

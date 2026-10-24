@@ -94,6 +94,26 @@ def cards():
     print(f"{len(out)} cartes candidates enregistrées")
 
 
+META = ROOT / "data" / "cache" / "card_meta.json"
+
+
+def meta():
+    """Nation, league and club of every FC 27 card rated <= 83 (for the panel's filters)."""
+    out = {}
+    for ovr in range(40, MAX_START + 1):
+        page = 1
+        while True:
+            d = get(f"{API}/players/v2/27/?overall__gte={ovr}&overall__lte={ovr}&page={page}")
+            for x in d.get("data", []):
+                out[x["eaId"]] = [(x.get("nation") or {}).get("name"), (x.get("league") or {}).get("name"), (x.get("club") or {}).get("name")]
+            if not d.get("next"):
+                break
+            page += 1
+            time.sleep(0.1)
+    META.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+    print(f"{len(out)} cartes avec nationalité, championnat et club")
+
+
 # ---------- GG estimate (absolute model, for ranking inside the search) ----------
 
 class GG:
@@ -142,8 +162,11 @@ def key(st):
         str(sorted(st["playstyles"])) + str(sorted(st["playstylesPlus"])) + str(sorted(st["rolesPlus"])) + str(sorted(st["rolesPlusPlus"]))
 
 
-def search_card(start, evos, gg):
-    """Beam search over chains of evolutions (each evolution once per player)."""
+def search_card(start, evos, gg, visit=None):
+    """Beam search over chains of evolutions (each evolution once per player).
+    visit(state) is called on the start and on every state reached."""
+    if visit:
+        visit(start)
     frontier = {key(start): (start, [])}
     best = []
     seen = set(frontier)
@@ -166,6 +189,8 @@ def search_card(start, evos, gg):
                     if k in seen:
                         continue
                     seen.add(k)
+                    if visit:
+                        visit(ns)
                     nxt[k] = (ns, path + [(e["id"], ch)])
         if not nxt:
             break
@@ -221,4 +246,4 @@ def search():
 
 
 if __name__ == "__main__":
-    {"cards": cards, "search": search}[sys.argv[1]]()
+    {"cards": cards, "search": search, "meta": meta}[sys.argv[1]]()
