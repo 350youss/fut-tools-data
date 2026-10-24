@@ -6,7 +6,7 @@ evolutions per path; the GG Rating is the one FUT.GG computes.
 
     py scripts/gen_headless.py data/cache/gen_queue_sample.json [workers]
 
-Results: data/cache/futgg_gen.json ({eaId: {found, complete, seconds, top, sig}}).
+Results: data/cache/futgg_gen.json.gz (see store.py).
 sig identifies the set of active evolutions (env FT_SIG, see evo_auto.py):
 cards already computed with the same set are skipped, so a run can be
 stopped and resumed.
@@ -22,8 +22,11 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import store  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
-OUT = Path(os.environ.get("FT_OUT") or ROOT / "data" / "cache" / "futgg_gen.json")
+OUT = Path(os.environ.get("FT_OUT") or store.RESULTS)
 LAB = "https://www.fut.gg/evo-lab/"
 KEY = "FUTGG_EVO_LAB_APP_27"
 TIMEOUT_S = 300
@@ -168,14 +171,14 @@ async def worker(k, browser, queue, results, lock):
             r["full"] = os.environ["FT_FULL"]
         async with lock:
             results[str(ea)] = r
-            OUT.write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")
+            store.save(results, OUT)
             best = (r.get("top") or [{}])[0]
             print(f"[{k}] {ea} {best.get('name')} GG {best.get('gg')} {best.get('ggPos')} ({r.get('seconds')} s) | reste {len(queue)}", flush=True)
     await ctx.close()
 
 
 async def main(queue_file, workers=3):
-    results = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
+    results = store.load(OUT)
     queue = [ea for ea in json.loads(Path(queue_file).read_text(encoding="utf-8")) if str(ea) not in results or "error" in results[str(ea)] or (SIG and results[str(ea)].get("sig") != SIG)]
     print(f"{len(queue)} cartes à calculer, {workers} navigateurs")
     lock = asyncio.Lock()

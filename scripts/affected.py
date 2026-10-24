@@ -25,7 +25,7 @@ import evo_scan  # noqa: E402
 import gg_pos_model  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-RESULTS = ROOT / "data" / "cache" / "futgg_gen.json"
+import store  # noqa: E402
 POS_CODE = {0: "GK", 3: "RB", 5: "CB", 7: "LB", 10: "CDM", 12: "RM", 14: "CM", 16: "LM", 18: "CAM", 23: "RW", 25: "ST", 27: "LW"}
 
 
@@ -75,7 +75,7 @@ def main(shard, shards, out):
     state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {}
     prev_ids = set(state.get("ids") or [])
     new_ids = {e["id"] for e in evos} - prev_ids if prev_ids else {e["id"] for e in evos}
-    results = json.loads(RESULTS.read_text(encoding="utf-8")) if RESULTS.exists() else {}
+    results = store.load()
     cards = json.loads(evo_scan.CARDS.read_text(encoding="utf-8"))
     ids = sorted(cards, key=int)[shard::shards]
     full = os.environ.get("FT_FULL", "")  # id of the weekly full recompute, if one is running

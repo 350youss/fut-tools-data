@@ -20,7 +20,7 @@ import evo_scan  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "data" / "cache" / "auto_state.json"
-RESULTS = ROOT / "data" / "cache" / "futgg_gen.json"
+import store  # noqa: E402
 RUN = ROOT / "data" / "cache" / "run_state.json"  # evolutions seen by the check job, used by the whole run
 LOG = ROOT / "data" / "cache" / "evo_auto.log"
 
@@ -65,10 +65,10 @@ def merge(folder):
     # the run's own evolution set: FUT.GG may have changed it since (next run handles that)
     run = json.loads(RUN.read_text(encoding="utf-8"))
     sig, ids = run["sig"], run["ids"]
-    results = json.loads(RESULTS.read_text(encoding="utf-8")) if RESULTS.exists() else {}
+    results = store.load()
     n = 0
-    for f in sorted(Path(folder).rglob("futgg_gen.json")):
-        for ea, r in json.loads(f.read_text(encoding="utf-8")).items():
+    for f in sorted(Path(folder).rglob("futgg_gen.json*")):
+        for ea, r in store.load(f).items():
             if r.get("sig") == sig and (ea not in results or results[ea].get("sig") != sig or "error" in results[ea]):
                 results[ea] = r
                 n += 1
@@ -76,7 +76,7 @@ def merge(folder):
         for ea in json.loads(f.read_text(encoding="utf-8")):
             if ea in results and "error" not in results[ea]:
                 results[ea]["sig"] = sig
-    RESULTS.write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")
+    store.save(results)
     cards = ROOT / "data" / "cache" / "scan_cards.json"
     all_items = [it for ea, c in json.loads(cards.read_text(encoding="utf-8")).items() for it in affected.items_of(ea, c["state"])]
     full = run.get("full", "")

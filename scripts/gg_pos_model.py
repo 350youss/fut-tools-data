@@ -79,23 +79,25 @@ def replay():
                 out.append((st, None, float(gg_i), ea))
             else:
                 out[-1] = (out[-1][0], POS[pos], out[-1][2], ea)
-    # headless runs (gen_headless.py): every step carries its own GG and position
-    gen2 = ROOT / "data" / "cache" / "futgg_gen.json"
+    # headless runs (gen_headless.py): GG after every step; "id@POS" results are ranked at POS
+    import store
     done = {ea for ea, _ in gen["rows"]}
-    for ea, r in (json.loads(gen2.read_text(encoding="utf-8")).items() if gen2.exists() else []):
+    for key, r in store.load().items():
+        ea, _, pos_key = key.partition("@")
         c = cards.get(ea)
         if not c or int(ea) in done or not r.get("top"):
             continue
         for path in r["top"][:2]:
-            st = c["state"]
-            for step in path["steps"]:
+            st, steps = c["state"], path["steps"]
+            for k, step in enumerate(steps):
                 evo = evos.get(step["evo"])
                 if not evo:
                     missing.add(step["evo"])
                     break
                 st = E.apply_evolution(st, evo, letters_to_choices(evo, step["letters"]))
-                if step.get("ggPos") in POS and step.get("gg"):
-                    out.append((st, POS[step["ggPos"]], float(step["gg"]), int(ea)))
+                pos = pos_key or (path.get("ggPos") if k == len(steps) - 1 else None)
+                if pos in POS and step.get("gg"):
+                    out.append((st, POS[pos], float(step["gg"]), int(ea)))
     if missing:
         print("évolutions inconnues :", sorted(missing))
     return out

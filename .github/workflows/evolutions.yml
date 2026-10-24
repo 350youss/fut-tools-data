@@ -93,7 +93,7 @@ jobs:
         with:
           name: shard-${{ matrix.shard }}
           path: |
-            data/cache/futgg_gen.json
+            data/cache/futgg_gen.json.gz
             queue.ok.json
           retention-days: 2
 

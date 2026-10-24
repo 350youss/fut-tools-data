@@ -1,3 +1,5 @@
 __pycache__/
 data/cache/gen_queue_auto.json
 data/cache/run_state.json
+data/evo_scan.json
+data/cache/futgg_gen.json

@@ -59,7 +59,8 @@ def main(count=400):
             base_gg[cur] = sc / 100
 
     ps_name = {p["eaId"]: p["name"] for p in (evo_scan.get(f"https://r2.fut.gg/27/play-styles.v{m['_version']}.{m['play-styles']}.json") or [])}
-    results = json.loads((ROOT / "data" / "cache" / "futgg_gen.json").read_text(encoding="utf-8"))
+    import store
+    results = store.load()
     entries = list(results.items()) + [(k, v) for k, v in club_rows() if k not in results]
     names, name_idx = [], {}
 
@@ -120,7 +121,10 @@ def main(count=400):
     import affected
     sig = affected.signature(evo_scan.active_evolutions())
     items = [it for ea, c in cards.items() for it in affected.items_of(ea, c["state"])]
-    done = sum(1 for it in items if results.get(it, {}).get("sig") == sig and "error" not in results[it])
+    # a pair counts once it has a result whose path is still fully active (or no path at all)
+    def valid(r):
+        return r and "error" not in r and (r.get("none") or (r.get("top") and all(s["evo"] in active for s in r["top"][0]["steps"])))
+    done = sum(1 for it in items if valid(results.get(it)))
     cover = {"done": done, "total": len(items)}
     OUT.write_text(json.dumps({"at": now, "cards": len(per_card), "cover": cover, "rows": rows[:count], "gems": gems}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
