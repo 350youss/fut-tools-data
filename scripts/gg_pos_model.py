@@ -209,19 +209,19 @@ class Model2(Model):
     def __init__(self, m=None):
         m = m or json.loads(MODEL2.read_text(encoding="utf-8"))
         super().__init__(m)
-        self.boost = {s: np.array([CHEM[s].get(a, 0) for a in ATTRS], float) for s in CHEM}
+        # one row of attribute boosts per style, outfield and keeper styles apart
+        self.boosts = {gk: np.array([[CHEM[s].get(a, 0) for a in ATTRS] for s in (GK_STYLES if gk else OUT_STYLES)], float)
+                       for gk in (True, False)}
 
     def styles(self, pos):
         return GK_STYLES if pos == 0 else OUT_STYLES
 
     def style_feats(self, st, pos):
         f = self.feats(st, pos)
-        out = []
-        for s in self.styles(pos):
-            g = f.copy()
-            g[:NA] = np.minimum(f[:NA] + self.boost[s], np.maximum(f[:NA], 99))
-            out.append(g)
-        return np.array(out)
+        b = self.boosts[pos == 0]
+        out = np.repeat(f[None, :], len(b), axis=0)
+        out[:, :NA] = np.minimum(f[:NA] + b, np.maximum(f[:NA], 99))
+        return out
 
     def pos_gg(self, st, pos):
         w = self.w.get(GROUP.get(pos, pos))

@@ -208,7 +208,7 @@ def search():
     cards_ = {k: v for k, v in json.loads(CARDS.read_text(encoding="utf-8")).items() if "/27-" in (v["url"] or "")}
     print(f"{len(cards_)} cartes FC 27")
     results, t0 = [], time.time()
-    with ProcessPoolExecutor(max(1, (os.cpu_count() or 2) - 1), initializer=_init) as pool:
+    with ProcessPoolExecutor(os.cpu_count() or 2, initializer=_init) as pool:
         for k, out in enumerate(pool.map(_one, cards_.items(), chunksize=8)):
             results.extend(out)
             if k % 500 == 0:
