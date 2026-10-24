@@ -1,0 +1,16 @@
+2026-10-24 08:38 nouvel ensemble d'évolutions (91 actives, f06bfd93e299), mise à jour
+2026-10-24 08:38 lance scripts/gg_pos_model.py fit2
+2026-10-24 08:38   poste 18 :  5111 ex., erreur (entraînement) 0.68
+2026-10-24 08:38   poste 25 :  2257 ex., erreur (entraînement) 0.71
+2026-10-24 08:38   poste 27 :  2058 ex., erreur (entraînement) 0.92
+2026-10-24 08:38 lance scripts/evo_scan.py search
+2026-10-24 10:18     Maiara Niehues               68 -> 85  GG≈92.1  5 évos
+2026-10-24 10:18     Maiara Niehues               68 -> 85  GG≈92.1  6 évos
+2026-10-24 10:18     Maiara Niehues               68 -> 85  GG≈92.1  6 évos
+2026-10-24 10:18 lance scripts/gen_headless.py /home/runner/work/fut-tools-data/fut-tools-data/data/cache/gen_queue_auto.json 4
+2026-10-24 10:19   [1] 220334 Romero GG 87.2 CM (10 s) | reste 0
+2026-10-24 10:19   [0] 253908 Luna Diale GG 87 CM (17 s) | reste 0
+2026-10-24 10:19   [3] 257484 Oosting GG 89.4 CDM (56 s) | reste 0
+2026-10-24 10:19 lance scripts/export_evo_best.py 400
+2026-10-24 10:19   4082 cartes calculées, 400 exportées, meilleure : Kieran Morgan 92 CDM
+2026-10-24 10:19 terminé en 101 min
