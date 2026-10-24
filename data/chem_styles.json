@@ -1,0 +1,247 @@
+{
+ "Anchor": {
+  "attributeAcceleration": 3,
+  "attributeSprintSpeed": 3,
+  "attributeInterceptions": 3,
+  "attributeHeadingAccuracy": 3,
+  "attributeDefensiveAwareness": 3,
+  "attributeStandingTackle": 6,
+  "attributeSlidingTackle": 6,
+  "attributeJumping": 6,
+  "attributeStrength": 6,
+  "attributeAggression": 3
+ },
+ "Architect": {
+  "attributeVision": 6,
+  "attributeFkAccuracy": 3,
+  "attributeShortPassing": 9,
+  "attributeLongPassing": 3,
+  "attributeCurve": 6,
+  "attributeStamina": 6,
+  "attributeStrength": 9,
+  "attributeAggression": 3
+ },
+ "Artist": {
+  "attributeVision": 3,
+  "attributeCrossing": 6,
+  "attributeShortPassing": 3,
+  "attributeLongPassing": 6,
+  "attributeCurve": 9,
+  "attributeAgility": 9,
+  "attributeReactions": 6,
+  "attributeDribbling": 3,
+  "attributeComposure": 3
+ },
+ "Backbone": {
+  "attributeVision": 3,
+  "attributeShortPassing": 3,
+  "attributeLongPassing": 6,
+  "attributeInterceptions": 6,
+  "attributeDefensiveAwareness": 3,
+  "attributeStandingTackle": 6,
+  "attributeSlidingTackle": 3,
+  "attributeStamina": 6,
+  "attributeStrength": 3,
+  "attributeAggression": 6
+ },
+ "Basic": {
+  "attributeSprintSpeed": 3,
+  "attributePositioning": 3,
+  "attributeShotPower": 3,
+  "attributePenalties": 3,
+  "attributeVision": 3,
+  "attributeShortPassing": 3,
+  "attributeLongPassing": 3,
+  "attributeCurve": 3,
+  "attributeAgility": 3,
+  "attributeBallControl": 3,
+  "attributeDribbling": 3,
+  "attributeComposure": 3,
+  "attributeDefensiveAwareness": 3,
+  "attributeStandingTackle": 3,
+  "attributeSlidingTackle": 3,
+  "attributeStrength": 3
+ },
+ "Catalyst": {
+  "attributeAcceleration": 6,
+  "attributeSprintSpeed": 6,
+  "attributeVision": 9,
+  "attributeCrossing": 6,
+  "attributeShortPassing": 3,
+  "attributeLongPassing": 6,
+  "attributeCurve": 3
+ },
+ "Deadeye": {
+  "attributePositioning": 6,
+  "attributeFinishing": 3,
+  "attributeShotPower": 9,
+  "attributeLongShots": 3,
+  "attributePenalties": 3,
+  "attributeVision": 3,
+  "attributeShortPassing": 9,
+  "attributeLongPassing": 3,
+  "attributeCurve": 6
+ },
+ "Engine": {
+  "attributeAcceleration": 3,
+  "attributeSprintSpeed": 3,
+  "attributeVision": 3,
+  "attributeCrossing": 6,
+  "attributeShortPassing": 3,
+  "attributeLongPassing": 3,
+  "attributeCurve": 6,
+  "attributeAgility": 3,
+  "attributeBalance": 6,
+  "attributeDribbling": 6
+ },
+ "Finisher": {
+  "attributePositioning": 6,
+  "attributeFinishing": 9,
+  "attributeShotPower": 3,
+  "attributeVolleys": 3,
+  "attributePenalties": 3,
+  "attributeAgility": 6,
+  "attributeBalance": 3,
+  "attributeReactions": 3,
+  "attributeDribbling": 9
+ },
+ "Gladiator": {
+  "attributePositioning": 3,
+  "attributeShotPower": 6,
+  "attributeLongShots": 3,
+  "attributeBalance": 3,
+  "attributeReactions": 6,
+  "attributeBallControl": 3,
+  "attributeDribbling": 3,
+  "attributeInterceptions": 3,
+  "attributeHeadingAccuracy": 3,
+  "attributeDefensiveAwareness": 3,
+  "attributeStandingTackle": 3,
+  "attributeSlidingTackle": 6
+ },
+ "Guardian": {
+  "attributeAgility": 6,
+  "attributeReactions": 3,
+  "attributeBallControl": 3,
+  "attributeDribbling": 6,
+  "attributeComposure": 3,
+  "attributeInterceptions": 3,
+  "attributeDefensiveAwareness": 6,
+  "attributeStandingTackle": 9,
+  "attributeSlidingTackle": 6
+ },
+ "Hawk": {
+  "attributeAcceleration": 3,
+  "attributeSprintSpeed": 3,
+  "attributePositioning": 3,
+  "attributeFinishing": 3,
+  "attributeShotPower": 6,
+  "attributeLongShots": 6,
+  "attributePenalties": 3,
+  "attributeJumping": 6,
+  "attributeStrength": 3,
+  "attributeAggression": 6
+ },
+ "Hunter": {
+  "attributeAcceleration": 6,
+  "attributeSprintSpeed": 6,
+  "attributePositioning": 3,
+  "attributeFinishing": 3,
+  "attributeShotPower": 3,
+  "attributeVolleys": 9,
+  "attributePenalties": 6
+ },
+ "Maestro": {
+  "attributePositioning": 3,
+  "attributeShotPower": 3,
+  "attributeLongShots": 6,
+  "attributeVision": 3,
+  "attributeFkAccuracy": 6,
+  "attributeShortPassing": 3,
+  "attributeLongPassing": 6,
+  "attributeReactions": 3,
+  "attributeBallControl": 6,
+  "attributeDribbling": 3,
+  "attributeComposure": 3
+ },
+ "Marksman": {
+  "attributeFinishing": 6,
+  "attributeShotPower": 3,
+  "attributeLongShots": 6,
+  "attributePenalties": 3,
+  "attributeReactions": 6,
+  "attributeBallControl": 6,
+  "attributeDribbling": 3,
+  "attributeComposure": 3,
+  "attributeJumping": 3,
+  "attributeStrength": 6
+ },
+ "Powerhouse": {
+  "attributeVision": 9,
+  "attributeShortPassing": 6,
+  "attributeLongPassing": 6,
+  "attributeCurve": 3,
+  "attributeInterceptions": 6,
+  "attributeDefensiveAwareness": 3,
+  "attributeStandingTackle": 9,
+  "attributeSlidingTackle": 3
+ },
+ "Sentinel": {
+  "attributeInterceptions": 6,
+  "attributeHeadingAccuracy": 6,
+  "attributeDefensiveAwareness": 9,
+  "attributeStandingTackle": 3,
+  "attributeSlidingTackle": 3,
+  "attributeJumping": 9,
+  "attributeStrength": 3,
+  "attributeAggression": 6
+ },
+ "Shadow": {
+  "attributeAcceleration": 6,
+  "attributeSprintSpeed": 6,
+  "attributeInterceptions": 3,
+  "attributeHeadingAccuracy": 6,
+  "attributeDefensiveAwareness": 3,
+  "attributeStandingTackle": 3,
+  "attributeSlidingTackle": 9
+ },
+ "Sniper": {
+  "attributePositioning": 9,
+  "attributeFinishing": 3,
+  "attributeShotPower": 3,
+  "attributeLongShots": 6,
+  "attributeVolleys": 3,
+  "attributePenalties": 3,
+  "attributeStamina": 6,
+  "attributeStrength": 9,
+  "attributeAggression": 3
+ },
+ "Cat": {
+  "attributeGkReflexes": 6,
+  "attributeAcceleration": 3,
+  "attributeGkPositioning": 9
+ },
+ "GK Basic": {
+  "attributeGkDiving": 3,
+  "attributeGkHandling": 3,
+  "attributeGkKicking": 3,
+  "attributeGkReflexes": 3,
+  "attributeAcceleration": 3,
+  "attributeGkPositioning": 3
+ },
+ "Glove": {
+  "attributeGkDiving": 6,
+  "attributeGkHandling": 9,
+  "attributeGkPositioning": 3
+ },
+ "Shield": {
+  "attributeGkKicking": 6,
+  "attributeGkReflexes": 9,
+  "attributeSprintSpeed": 3
+ },
+ "Wall": {
+  "attributeGkDiving": 9,
+  "attributeGkHandling": 3,
+  "attributeGkKicking": 6
+ }
+}
