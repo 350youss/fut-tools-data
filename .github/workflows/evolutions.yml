@@ -17,6 +17,7 @@ on:
         description: "auto (si changement) ou force (vérifie toutes les cartes, à chaque poste)"
         default: auto
 
+# runs never overlap; a queued run reads the latest data when it starts (checkout ref: main)
 concurrency:
   group: evolutions
   cancel-in-progress: false
@@ -37,6 +38,8 @@ jobs:
       cards: ${{ steps.c.outputs.cards }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -69,6 +72,8 @@ jobs:
         shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -103,6 +108,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
