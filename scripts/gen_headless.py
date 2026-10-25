@@ -152,6 +152,9 @@ async def one(page, item):
     return {"found": found, "complete": False, "seconds": TIMEOUT_S, "top": await ev(page, READ, 4)}
 
 
+retried = set()
+
+
 async def worker(k, browser, queue, results, lock):
     ctx = await browser.new_context(viewport={"width": 1400, "height": 1000})
     page = await ctx.new_page()
@@ -166,6 +169,10 @@ async def worker(k, browser, queue, results, lock):
             r = await one(page, ea)
         except Exception as e:  # noqa: BLE001
             r = {"error": str(e)[:200]}
+            if ea not in retried:  # transient page errors: one more try at the end of the queue
+                retried.add(ea)
+                queue.append(ea)
+                continue
         r["sig"] = SIG
         if os.environ.get("FT_FULL"):
             r["full"] = os.environ["FT_FULL"]
